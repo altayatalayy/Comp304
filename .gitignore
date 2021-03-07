@@ -1,0 +1,13 @@
+#ignore everything
+*
+
+#whitelist
+!*/
+!.gitignore
+!**.md
+!hw*/**/*.[ch]
+!hw*/**/CMakeLists.txt
+
+
+hw*/**/CMakeFiles/
+hw*/**/*.mod.c
