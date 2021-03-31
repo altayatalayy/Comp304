@@ -8,6 +8,9 @@
 !hw*/**/*.[ch]
 !hw*/**/CMakeLists.txt
 
+!prj*/**/*.[ch]
+!prj*/**/Makefile
+
 
 hw*/**/CMakeFiles/
 hw*/**/*.mod.c
