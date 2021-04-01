@@ -76,6 +76,39 @@ int process_command(struct command_t *command) {
 						}
 					}
 				}
+			}else if(strcmp(command->args[0], "del") == 0){
+				char* name = command->args[1];
+				FILE* fp;
+				fp = fopen(config_file, "rw");
+				char * line = NULL;
+				size_t len = 0;
+				ssize_t read;
+				char cpy[512];
+				while ((read = getline(&line, &len, fp)) != -1){
+					strcpy(cpy, line);
+					char* token = strtok(cpy, ":");
+					if(strcmp(token, "alias") == 0 && !strcmp(strtok(NULL, ":"), name))
+						fprintf(fp, "%s", line);
+
+				}
+			}else if(strcmp(command->args[0], "clear") == 0){
+				char* name = command->args[1];
+				FILE* fp;
+				fp = fopen(config_file, "w");
+				fprintf(fp, "\n");
+			}else if(strcmp(command->args[0], "list") == 0){
+				FILE* fp;
+				fp = fopen(config_file, "r");
+				char * line = NULL;
+				size_t len = 0;
+				ssize_t read;
+				char cpy[512];
+				while ((read = getline(&line, &len, fp)) != -1){
+					strcpy(cpy, line);
+					char* token = strtok(cpy, ":");
+					if(strcmp(token, "alias") == 0)
+						printf("%s", line);
+				}
 			}
 		}
 
