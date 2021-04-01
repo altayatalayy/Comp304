@@ -28,7 +28,6 @@ int main() {
 
 		free_command(command);
 	}
-
 	printf("\n");
 	return 0;
 }
@@ -52,6 +51,8 @@ int process_command(struct command_t *command) {
 	if (strcmp(command->name, "shortdir") == 0){
 		if (command->arg_count > 0 ){
 			if (strcmp(command->args[0], "set") == 0){
+				if(!(command->arg_count > 1))
+					return SUCCESS;
 				char cwd[1024];
 				getcwd(cwd, sizeof(cwd));
 				FILE* fp;
@@ -61,6 +62,9 @@ int process_command(struct command_t *command) {
 				printf("Alias set %s -> %s\n", command->args[1], cwd);
 				return SUCCESS;
 			}else if(strcmp(command->args[0], "jump") == 0){
+				if(!(command->arg_count > 1))
+					return SUCCESS;
+
 				FILE* fp;
 				fp = fopen(config_file, "r");
 				char * line = NULL;
@@ -81,6 +85,8 @@ int process_command(struct command_t *command) {
 					}
 				}
 			}else if(strcmp(command->args[0], "del") == 0){
+				if(!(command->arg_count > 1))
+					return EXIT;
 				char* name = command->args[1];
 				FILE* fp;
 				fp = fopen(config_file, "rw");
@@ -95,11 +101,12 @@ int process_command(struct command_t *command) {
 						fprintf(fp, "%s", line);
 
 				}
+				return SUCCESS;
 			}else if(strcmp(command->args[0], "clear") == 0){
-				char* name = command->args[1];
 				FILE* fp;
 				fp = fopen(config_file, "w");
 				fprintf(fp, "\n");
+				return SUCCESS;
 			}else if(strcmp(command->args[0], "list") == 0){
 				FILE* fp;
 				fp = fopen(config_file, "r");
@@ -113,12 +120,16 @@ int process_command(struct command_t *command) {
 					if(strcmp(token, "alias") == 0)
 						printf("%s", line);
 				}
+				return SUCCESS;
 			}
 		}
-
 	}
 
 	if(strcmp(command->name, "highlight") == 0){
+		if(!(command->arg_count > 3)){
+			printf("required 3 got %d args\n", command->arg_count);
+			return SUCCESS;
+		}
 		char* word = command->args[0];
 		char color = command->args[1][0];
 		char* f_name = command->args[2];
@@ -151,18 +162,30 @@ int process_command(struct command_t *command) {
 	}
 
 	if(strcmp(command->name, "kdiff") == 0){
+		char* str = "-a";
+		bool cleanup_flag = false;
+		if(command->arg_count == 2){
+			command->args[2] = command->args[1];
+			command->args[1] = command->args[0];
+			command->args[0] = str;
+			command->arg_count++;
+			cleanup_flag = true;
+		}else if(command->arg_count != 3){
+			printf("Wrong arg count\n");
+			return SUCCESS;
+		}
 		if(strcmp(command->args[0], "-a") == 0){
 			FILE *fp1, *fp2;
 			char *fn1 = command->args[1], *fn2 = command->args[2];
 			char * ext = strrchr(fn1, '.');
 			if(strcmp(ext, ".txt") != 0){
 				printf("file1 : required .txt got:%s\n", ext);
-				return EXIT;
+				return SUCCESS;
 			}
 			ext = strrchr(fn2, '.');
 			if(strcmp(ext, ".txt")){
 				printf("file2 : required .txt got:%s\n", ext);
-				return EXIT;
+				return SUCCESS;
 			}
 			fp1 = fopen(fn1, "r");
 			fp2 = fopen(fn2, "r");
@@ -182,11 +205,25 @@ int process_command(struct command_t *command) {
 			fclose(fp1);
 			fclose(fp2);
 			printf("%d different lines found\n", count);
+			if(cleanup_flag){
+				command->args[0] = command->args[1];
+				command->args[1] = command->args[2];
+				command->arg_count--;
+			}
 			return SUCCESS;
 		}else if(strcmp(command->args[0], "-b") == 0){
 			FILE *fp1, *fp2;
 			char *fn1 = command->args[1], *fn2 = command->args[2];
-			fp1 = fopen(fn1, "rb");
+			char * ext = strrchr(fn1, '.');
+			if(strcmp(ext, ".bin") != 0){
+				printf("file1 : required .txt got:%s\n", ext);
+				return SUCCESS;
+			}
+			ext = strrchr(fn2, '.');
+			if(strcmp(ext, ".bin")){
+				printf("file2 : required .txt got:%s\n", ext);
+				return SUCCESS;
+			}fp1 = fopen(fn1, "rb");
 			fp2 = fopen(fn2, "rb");
 			unsigned char buf1[1], buf2[1];
 			int count = 0;
@@ -201,6 +238,9 @@ int process_command(struct command_t *command) {
 				printf("The two files are different in %d bytes\n", count);
 			else
 				printf("The two files are identical\n");
+			return SUCCESS;
+		}else{
+			printf("Usage $kdiff [-a|-b] file1 file2");
 			return SUCCESS;
 		}
 	}
