@@ -97,10 +97,12 @@ int process_command(struct command_t *command) {
 						fprintf(fp, "%s", line);
 
 				}
+				return SUCCESS;
 			}else if(strcmp(command->args[0], "clear") == 0){
 				FILE* fp;
 				fp = fopen(config_file, "w");
 				fprintf(fp, "\n");
+				return SUCCESS;
 			}else if(strcmp(command->args[0], "list") == 0){
 				FILE* fp;
 				fp = fopen(config_file, "r");
@@ -114,9 +116,9 @@ int process_command(struct command_t *command) {
 					if(strcmp(token, "alias") == 0)
 						printf("%s", line);
 				}
+				return SUCCESS;
 			}
 		}
-
 	}
 
 	if(strcmp(command->name, "highlight") == 0){
@@ -157,10 +159,16 @@ int process_command(struct command_t *command) {
 	}
 
 	if(strcmp(command->name, "kdiff") == 0){
+		char* str = "-a";
+		bool cleanup_flag = false;
 		if(command->arg_count == 2){
-			command->args[0] = "-a";
+			command->args[2] = command->args[1];
+			command->args[1] = command->args[0];
+			command->args[0] = str;
+			command->arg_count++;
+			cleanup_flag = true;
 		}else if(command->arg_count != 3){
-			printf("Wrong arg count");
+			printf("Wrong arg count\n");
 			return SUCCESS;
 		}
 		if(strcmp(command->args[0], "-a") == 0){
@@ -194,6 +202,11 @@ int process_command(struct command_t *command) {
 			fclose(fp1);
 			fclose(fp2);
 			printf("%d different lines found\n", count);
+			if(cleanup_flag){
+				command->args[0] = command->args[1];
+				command->args[1] = command->args[2];
+				command->arg_count--;
+			}
 			return SUCCESS;
 		}else if(strcmp(command->args[0], "-b") == 0){
 			FILE *fp1, *fp2;
@@ -201,12 +214,12 @@ int process_command(struct command_t *command) {
 			char * ext = strrchr(fn1, '.');
 			if(strcmp(ext, ".bin") != 0){
 				printf("file1 : required .txt got:%s\n", ext);
-				return EXIT;
+				return SUCCESS;
 			}
 			ext = strrchr(fn2, '.');
 			if(strcmp(ext, ".bin")){
 				printf("file2 : required .txt got:%s\n", ext);
-				return EXIT;
+				return SUCCESS;
 			}fp1 = fopen(fn1, "rb");
 			fp2 = fopen(fn2, "rb");
 			unsigned char buf1[1], buf2[1];
