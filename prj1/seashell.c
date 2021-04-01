@@ -10,6 +10,10 @@
 #include "seashell.h"
 
 
+char* path;  
+char *token;
+char **pathArray; 
+
 int main() {
 	while (1) {
 		struct command_t *command=malloc(sizeof(struct command_t));
@@ -136,7 +140,6 @@ int process_command(struct command_t *command) {
 		}
 		return SUCCESS;
 	}
-
 	if(strcmp(command->name, "goodMorning") == 0){
 		int h, m;
 		h = atoi(strtok(command->args[0], "."));
@@ -227,6 +230,20 @@ int process_command(struct command_t *command) {
 		execvp(command->name, command->args); // exec+args+path
 		exit(0);
 		/// TODO: do your own exec with path resolving using execv()
+		path = getenv(command->name);
+		//token = strtok(path, :)
+		//command->args = (char **)malloc(sizeof(char *));
+		while(true) {
+			if(strtok(path, :) == NULL){
+				break;
+			}
+
+			token = strtok(NULL, :);	
+   }
+
+
+		execv(,command ->args);
+
 	}
 	else {
 		if (!command->background)
@@ -295,7 +312,7 @@ int show_prompt() {
 	gethostname(hostname, sizeof(hostname));
 	getcwd(cwd, sizeof(cwd));
 	printf("%s@%s:%s %s$ ", getenv("USER"), hostname, cwd, sysname);
-	return 0;
+	return 0
 }
 
 int parse_command(char *buf, struct command_t *command) {

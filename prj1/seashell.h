@@ -3,7 +3,7 @@
 #define __SEASHELL_H__
 
 const char * sysname = "seashell";
-const char * config_file = "/home/altay/.seashell.rc";
+const char * config_file = "/home/umur/.seashell.rc";
 
 enum return_codes {
 	SUCCESS = 0,
