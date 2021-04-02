@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 
-static const char* config_file = "/home/altay/.seashell.rc";
+const char* config_file = "/home/pi/.seashellrc";
 typedef unsigned long long hash_t;
 
 typedef struct conf_elm{
@@ -16,6 +16,8 @@ typedef struct conf_elm{
 	hash_t hash;
 	struct conf_elm* next;
 } conf_elm_t;
+
+void save_config(conf_elm_t **head);
 
 hash_t hash_str(unsigned char *str) {
 	// sue djb2 for hashing a string
@@ -46,6 +48,7 @@ void add_conf_elm(conf_elm_t **head, char *type, char **args){
 	conf_elm_t *nconf = create_conf_elm(type, args);
 	if((*head) == NULL){
 		*head = nconf;
+		save_config(head);
 		return;
 	}
 	conf_elm_t *next = (*head)->next, *last = *head;
@@ -54,11 +57,12 @@ void add_conf_elm(conf_elm_t **head, char *type, char **args){
 		last->next = nconf;
 	else
 		last->args = nconf->args;
+	save_config(head);
 }
 
 void load_config(conf_elm_t **head){
 	struct flock fl = {F_RDLCK, SEEK_SET, 0, 0, getpid()};
-	int fd = open(config_file, O_RDONLY);
+	int fd = open(config_file, O_RDONLY | O_CREAT);
 	if(fd == -1){
 		perror("Cannot open config file");
 		exit(1);
@@ -68,7 +72,6 @@ void load_config(conf_elm_t **head){
 		exit(1);
 	}
 
-	printf("config file got lock\n");
 	FILE *fp = fdopen(fd, "r");
 	char* line = NULL;
 	size_t len = 0;
@@ -96,14 +99,13 @@ void load_config(conf_elm_t **head){
 		exit(1);
 	}
 
-	printf("config file Unlocked.\n");
-
 	close(fd);
 }
 
 void save_config(conf_elm_t **head){
 	struct flock fl = {F_WRLCK, SEEK_SET, 0, 0, getpid()};
-	int fd = open(config_file, O_WRONLY);
+	int fd = open(config_file, O_WRONLY | O_CREAT);
+	printf("%d\n", *head==NULL);
 	if(fd == -1){
 		perror("Cannot open config file");
 		exit(1);
@@ -113,17 +115,19 @@ void save_config(conf_elm_t **head){
 		exit(1);
 	}
 
-	printf("config file got lock\n");
 	FILE *fp = fdopen(fd, "w");
-	if(*head == NULL)
-		fprintf(fp, "\n");
+	if(*head == NULL){
+		fp = freopen(NULL, "w", fp);
+		return;
+	}
 	else{
-		for(conf_elm_t elm = *head; elm != NULL, elm = elm->next){
+		for(conf_elm_t *elm = *head; elm != NULL; elm = elm->next){
 			if(elm->args[1][strlen(elm->args[1])-2] == '\n')
-				elm->args[1][strlen(elm->args[1])-2] = '\0'
+				elm->args[1][strlen(elm->args[1])-2] = '\0';
 			fprintf(fp, "%s:%s:%s\n", elm->type, elm->args[0], elm->args[1]);
 		}
 	}
+
 
 	fl.l_type = F_UNLCK;  /* set to unlock same region */
 
@@ -132,13 +136,76 @@ void save_config(conf_elm_t **head){
 		exit(1);
 	}
 
-	printf("config file Unlocked.\n");
-
+	fclose(fp);
 	close(fd);
-
 }
 
-void get_conf(conf_elm_t **head){
-
+char** get_conf(conf_elm_t **head, char *type, char *name){
+	if(*head == NULL){
+		return NULL;
+	}
+	if(name == NULL){
+		char **rv = (char**)malloc(sizeof(char*)*512);
+		int i = 0;
+		for(conf_elm_t *tmp = *head; tmp != NULL; i+=2, tmp = tmp->next){
+			if(strcmp(tmp->type, type) == 0){
+				rv[i] = tmp->args[0];
+				rv[i+1]  = tmp->args[1];
+			}
+		}
+		rv[i+1] = NULL;
+		return rv;
+	}else{
+		hash_t hash = hash_str(type) + hash_str(name);
+		for(conf_elm_t *tmp = *head; tmp != NULL; tmp = tmp->next){
+			if(tmp->hash == hash){
+				return &(tmp->args[1]);
+			}
+		}
+	}
+	return NULL;
 }
+
+void rm_config(conf_elm_t **head, char *type, char *name){
+	if(*head == NULL){
+		return;
+	}
+	conf_elm_t *prev;
+	if(name == NULL){
+		prev = *head;
+		for(conf_elm_t *tmp = *head; tmp != NULL; tmp = tmp->next){
+			if(strcmp(tmp->type, type) == 0){
+				if(tmp->next == NULL){
+					if(tmp == prev)
+						*head = NULL;
+					else
+						prev->next = NULL;
+				}else{
+					prev->next = tmp->next;
+				}
+			}
+			prev = tmp;
+			tmp = tmp->next;
+		}
+	}else{
+		hash_t hash = hash_str(type) + hash_str(name);
+		prev = *head;
+		for(conf_elm_t *tmp = *head; tmp != NULL;){
+			if(tmp->hash == hash){
+				if(tmp->next == NULL){
+					if(tmp == prev)
+						*head = NULL;
+					else
+						prev->next = NULL;
+				}else{
+					prev->next = tmp->next;
+				}
+			}
+			prev = tmp;
+			tmp = tmp->next;
+		}
+	}
+	save_config(head);
+}
+
 #endif

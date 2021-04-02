@@ -37,11 +37,11 @@ void print_colored(char* str, char color){
 
 typedef struct builtin_cmd{
 	char* name;
-	int (*handler)(command_t*);
+	int (*handler)(command_t*, conf_elm_t*);
 	struct builtin_cmd *nxt;
 }builtin_cmd_t;
 
-builtin_cmd_t* create_builtin_cmd(const char* name, int (*handler)(command_t*)){
+builtin_cmd_t* create_builtin_cmd(const char* name, int (*handler)(command_t*, conf_elm_t*)){
 	builtin_cmd_t *cmd = (builtin_cmd_t*)malloc(sizeof(builtin_cmd_t));
 	cmd->name = (char*)malloc(sizeof(char)*strlen(name));
 	strcpy(cmd->name, name);
@@ -50,7 +50,7 @@ builtin_cmd_t* create_builtin_cmd(const char* name, int (*handler)(command_t*)){
 	return cmd;
 }
 
-void add_cmd(builtin_cmd_t **cmd, const char* name, int (*handler)(command_t*)){
+void add_cmd(builtin_cmd_t **cmd, const char* name, int (*handler)(command_t*, conf_elm_t*)){
 	builtin_cmd_t *new_cmd = create_builtin_cmd(name, handler);
 	if((*cmd) == NULL){
 		*cmd = new_cmd;
@@ -62,17 +62,17 @@ void add_cmd(builtin_cmd_t **cmd, const char* name, int (*handler)(command_t*)){
 	return;
 }
 
-int handle_cmd(builtin_cmd_t *head, command_t *cmd){
+int handle_cmd(builtin_cmd_t *head, command_t *cmd, conf_elm_t *elms){
 	builtin_cmd_t *tmp = head;
 	for(;(tmp != NULL) && (strcmp(tmp->name, cmd->name) != 0); tmp = tmp->nxt);
 	if(tmp != NULL){
-		return (*(tmp->handler))(cmd);
+		return (*(tmp->handler))(cmd, elms);
 	}
 	return UNKNOWN;
 }
 
 
-int kdiff_handler(command_t * command){
+int kdiff_handler(command_t * command, conf_elm_t *conf_elms){
 	char* str = "-a";
 	bool cleanup_flag = false;
 	if(command->arg_count == 2){
@@ -156,17 +156,17 @@ int kdiff_handler(command_t * command){
 	}
 }
 
-int shortdir_handler(command_t* command){
+int shortdir_handler(command_t* command, conf_elm_t *conf_elms){
 	if (command->arg_count > 0 ){
 		if (strcmp(command->args[0], "set") == 0){
-			if(!(command->arg_count > 1))
+			if(!(command->arg_count > 0))
 				return SUCCESS;
 			char cwd[1024];
 			getcwd(cwd, sizeof(cwd));
 			char **args = (char**)malloc(sizeof(char*) * 2);
 			args[0] = (char*)malloc(sizeof(char)*strlen(command->args[1]));
 			args[1] = (char*)malloc(sizeof(char)*strlen(cwd));
-			strcpy(args[0], command->args[0]);
+			strcpy(args[0], command->args[1]);
 			strcpy(args[1], cwd);
 			add_conf_elm(&conf_elms, "alias", args);
 			printf("Alias set %s -> %s\n", command->args[1], cwd);
@@ -175,60 +175,31 @@ int shortdir_handler(command_t* command){
 			if(!(command->arg_count > 1))
 				return SUCCESS;
 
-			FILE* fp;
-			fp = fopen(config_file, "r");
-			char * line = NULL;
-			size_t len = 0;
-			ssize_t read;
-			while ((read = getline(&line, &len, fp)) != -1){
-				char* token = strtok(line, ":");
-				if(strcmp(token, "alias") == 0){
-					token = strtok(NULL, ":");
-					if(strcmp(token, command->args[1]) == 0){
-						token = strtok(NULL, ":");
-						token = strtok(token, "\n");
-						int r = chdir(token);
-						printf("chdir to %s : %d\n", token, r);
-						fclose(fp);
-						return SUCCESS;
-					}
-				}
+			char *path = get_conf(&conf_elms, "alias", command->args[1])[0];
+			if(path != NULL){
+				int r = chdir(path);
+				printf("chdir to %s : %d\n", path, r);
 			}
+			return SUCCESS;
 		}else if(strcmp(command->args[0], "del") == 0){
 			if(!(command->arg_count > 1))
 				return EXIT;
-			char* name = command->args[1];
-			FILE* fp;
-			fp = fopen(config_file, "rw");
-			char * line = NULL;
-			size_t len = 0;
-			ssize_t read;
-			char cpy[512];
-			while ((read = getline(&line, &len, fp)) != -1){
-				strcpy(cpy, line);
-				char* token = strtok(cpy, ":");
-				if(strcmp(token, "alias") == 0 && !strcmp(strtok(NULL, ":"), name))
-					fprintf(fp, "%s", line);
-
-			}
+			rm_config(&conf_elms, "alias", command->args[1]);
 			return SUCCESS;
 		}else if(strcmp(command->args[0], "clear") == 0){
-			FILE* fp;
-			fp = fopen(config_file, "w");
-			fprintf(fp, "\n");
+			rm_config(&conf_elms, "alias", NULL);
 			return SUCCESS;
 		}else if(strcmp(command->args[0], "list") == 0){
-			FILE* fp;
-			fp = fopen(config_file, "r");
-			char * line = NULL;
-			size_t len = 0;
-			ssize_t read;
-			char cpy[512];
-			while ((read = getline(&line, &len, fp)) != -1){
-				strcpy(cpy, line);
-				char* token = strtok(cpy, ":");
-				if(strcmp(token, "alias") == 0)
-					printf("%s", line);
+			char **ls = get_conf(&conf_elms, "alias", NULL);
+			if(ls == NULL)
+				return SUCCESS;
+			char *name, *path;
+			for(int i = 0;; i+=2){
+				name = ls[i];
+				if(name == NULL)
+					break;
+				path = ls[i+1];
+				printf("Alias %s -> %s\n", ls[i], ls[i+1]);
 			}
 			return SUCCESS;
 		}else{
