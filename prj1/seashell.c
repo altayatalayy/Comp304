@@ -7,10 +7,21 @@
 #include <stdbool.h>
 #include <errno.h>
 
+
+builtin_cmd_t *builtin_cmds = NULL;
+conf_elm_t *conf_elms = NULL;
+
+#include "config.h"
 #include "seashell.h"
 
 
 int main() {
+	load_config(&conf_elms);
+	printf("%s : %s\n", conf_elms->type, conf_elms->args[0]);
+	if(conf_elms->next == NULL)
+		printf("N\n");
+	add_cmd(&builtin_cmds, "kdiff", kdiff_handler);
+	add_cmd(&builtin_cmds, "shortdir", shortdir_handler);
 	while (1) {
 		struct command_t *command=malloc(sizeof(struct command_t));
 		memset(command, 0, sizeof(struct command_t)); // set all bytes to 0
@@ -44,82 +55,9 @@ int process_command(struct command_t *command) {
 		}
 	}
 
-	if (strcmp(command->name, "shortdir") == 0){
-		if (command->arg_count > 0 ){
-			if (strcmp(command->args[0], "set") == 0){
-				if(!(command->arg_count > 1))
-					return SUCCESS;
-				char cwd[1024];
-				getcwd(cwd, sizeof(cwd));
-				FILE* fp;
-				fp = fopen(config_file, "a");
-				fprintf(fp, "alias:%s:%s\n", command->args[1], cwd);
-				fclose(fp);
-				printf("Alias set %s -> %s\n", command->args[1], cwd);
-				return SUCCESS;
-			}else if(strcmp(command->args[0], "jump") == 0){
-				if(!(command->arg_count > 1))
-					return SUCCESS;
-
-				FILE* fp;
-				fp = fopen(config_file, "r");
-				char * line = NULL;
-				size_t len = 0;
-				ssize_t read;
-				while ((read = getline(&line, &len, fp)) != -1){
-					char* token = strtok(line, ":");
-					if(strcmp(token, "alias") == 0){
-						token = strtok(NULL, ":");
-						if(strcmp(token, command->args[1]) == 0){
-							token = strtok(NULL, ":");
-							token = strtok(token, "\n");
-							r = chdir(token);
-							printf("chdir to %s : %d\n", token, r);
-							fclose(fp);
-							return SUCCESS;
-						}
-					}
-				}
-			}else if(strcmp(command->args[0], "del") == 0){
-				if(!(command->arg_count > 1))
-					return EXIT;
-				char* name = command->args[1];
-				FILE* fp;
-				fp = fopen(config_file, "rw");
-				char * line = NULL;
-				size_t len = 0;
-				ssize_t read;
-				char cpy[512];
-				while ((read = getline(&line, &len, fp)) != -1){
-					strcpy(cpy, line);
-					char* token = strtok(cpy, ":");
-					if(strcmp(token, "alias") == 0 && !strcmp(strtok(NULL, ":"), name))
-						fprintf(fp, "%s", line);
-
-				}
-				return SUCCESS;
-			}else if(strcmp(command->args[0], "clear") == 0){
-				FILE* fp;
-				fp = fopen(config_file, "w");
-				fprintf(fp, "\n");
-				return SUCCESS;
-			}else if(strcmp(command->args[0], "list") == 0){
-				FILE* fp;
-				fp = fopen(config_file, "r");
-				char * line = NULL;
-				size_t len = 0;
-				ssize_t read;
-				char cpy[512];
-				while ((read = getline(&line, &len, fp)) != -1){
-					strcpy(cpy, line);
-					char* token = strtok(cpy, ":");
-					if(strcmp(token, "alias") == 0)
-						printf("%s", line);
-				}
-				return SUCCESS;
-			}
-		}
-	}
+	int rv = handle_cmd(builtin_cmds, command);
+	if(r != UNKNOWN)
+		return rv;
 
 	if(strcmp(command->name, "highlight") == 0){
 		if(!(command->arg_count > 3)){
@@ -158,89 +96,6 @@ int process_command(struct command_t *command) {
 		return SUCCESS;
 	}
 
-	if(strcmp(command->name, "kdiff") == 0){
-		char* str = "-a";
-		bool cleanup_flag = false;
-		if(command->arg_count == 2){
-			command->args[2] = command->args[1];
-			command->args[1] = command->args[0];
-			command->args[0] = str;
-			command->arg_count++;
-			cleanup_flag = true;
-		}else if(command->arg_count != 3){
-			printf("Wrong arg count\n");
-			return SUCCESS;
-		}
-		if(strcmp(command->args[0], "-a") == 0){
-			FILE *fp1, *fp2;
-			char *fn1 = command->args[1], *fn2 = command->args[2];
-			char * ext = strrchr(fn1, '.');
-			if(strcmp(ext, ".txt") != 0){
-				printf("file1 : required .txt got:%s\n", ext);
-				return SUCCESS;
-			}
-			ext = strrchr(fn2, '.');
-			if(strcmp(ext, ".txt")){
-				printf("file2 : required .txt got:%s\n", ext);
-				return SUCCESS;
-			}
-			fp1 = fopen(fn1, "r");
-			fp2 = fopen(fn2, "r");
-			char *line1 = NULL, *line2 = NULL;
-			size_t len = 0;
-			ssize_t read;
-			char * token;
-			int line_num = 0, count = 0;
-			while ((read = getline(&line1, &len, fp1)) != -1 && (read = getline(&line2, &len, fp2)) != -1){
-				if(strcmp(line1, line2) != 0){
-					count++;
-					printf("%s:Line %d: %s", fn1, line_num, line1);
-					printf("%s:Line %d: %s", fn2, line_num, line2);
-				}
-				line_num++;
-			}
-			fclose(fp1);
-			fclose(fp2);
-			printf("%d different lines found\n", count);
-			if(cleanup_flag){
-				command->args[0] = command->args[1];
-				command->args[1] = command->args[2];
-				command->arg_count--;
-			}
-			return SUCCESS;
-		}else if(strcmp(command->args[0], "-b") == 0){
-			FILE *fp1, *fp2;
-			char *fn1 = command->args[1], *fn2 = command->args[2];
-			char * ext = strrchr(fn1, '.');
-			if(strcmp(ext, ".bin") != 0){
-				printf("file1 : required .txt got:%s\n", ext);
-				return SUCCESS;
-			}
-			ext = strrchr(fn2, '.');
-			if(strcmp(ext, ".bin")){
-				printf("file2 : required .txt got:%s\n", ext);
-				return SUCCESS;
-			}fp1 = fopen(fn1, "rb");
-			fp2 = fopen(fn2, "rb");
-			unsigned char buf1[1], buf2[1];
-			int count = 0;
-			while (!feof(fp1) && !feof(fp2)){
-				fread(buf1, sizeof(buf1), 1, fp1);
-				fread(buf2, sizeof(buf2), 1, fp2);
-				if(*buf1 != *buf2)
-					count++;
-			}
-			fclose(fp1); fclose(fp2);
-			if(count > 0)
-				printf("The two files are different in %d bytes\n", count);
-			else
-				printf("The two files are identical\n");
-			return SUCCESS;
-		}else{
-			printf("Usage $kdiff [-a|-b] file1 file2");
-			return SUCCESS;
-		}
-	}
 
 	pid_t pid=fork();
 	if (pid==0){
