@@ -16,7 +16,6 @@ conf_elm_t *conf_elms = NULL;
 
 int main() {
 	load_config(&conf_elms);
-	printf("a\n");
 	//printf("%s : %s\n", conf_elms->type, conf_elms->args[0]);
 	add_cmd(&builtin_cmds, "kdiff", kdiff_handler);
 	add_cmd(&builtin_cmds, "shortdir", shortdir_handler);
@@ -53,7 +52,8 @@ int process_command(struct command_t *command) {
 		}
 	}
 
-	int rv = handle_cmd(builtin_cmds, command, conf_elms);
+	int rv = handle_cmd(builtin_cmds, command, &conf_elms);
+	//printf("seashell c conelms == NULL %d\n", conf_elms == NULL);
 	if(r != UNKNOWN)
 		return rv;
 

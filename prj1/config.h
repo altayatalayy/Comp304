@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 
-const char* config_file = "/home/pi/.seashellrc";
+const char* config_file = "/home/altay/.seashellrc";
 typedef unsigned long long hash_t;
 
 typedef struct conf_elm{
@@ -31,9 +31,9 @@ hash_t hash_str(unsigned char *str) {
 }
 
 void hash_conf_elm(conf_elm_t *elm){
-	hash_t hash = hash_str(elm->type) + hash_str(elm->args[0]);
-	printf("%lld\n", hash);
-	elm->hash = hash;
+	hash_t *hash = (hash_t*)malloc(sizeof(hash_t));
+	*hash = hash_str(elm->type) + hash_str(elm->args[0]);
+	elm->hash = *hash;
 }
 
 conf_elm_t* create_conf_elm(char *type, char **args){
@@ -42,11 +42,14 @@ conf_elm_t* create_conf_elm(char *type, char **args){
 	elm->args = args;
 	hash_conf_elm(elm);
 	elm->next = NULL;
+	return elm;
 }
 
 void add_conf_elm(conf_elm_t **head, char *type, char **args){
+	/*add the conf element to the linked list
+	 * */
 	conf_elm_t *nconf = create_conf_elm(type, args);
-	if((*head) == NULL){
+	if(*head == NULL){
 		*head = nconf;
 		save_config(head);
 		return;
@@ -61,6 +64,9 @@ void add_conf_elm(conf_elm_t **head, char *type, char **args){
 }
 
 void load_config(conf_elm_t **head){
+	/*Load config elements from the file
+	 *For handling race conditions lock the file flock using fcntl
+	 * */
 	struct flock fl = {F_RDLCK, SEEK_SET, 0, 0, getpid()};
 	int fd = open(config_file, O_RDONLY | O_CREAT);
 	if(fd == -1){
@@ -78,13 +84,19 @@ void load_config(conf_elm_t **head){
 	ssize_t read;
 	char *type, **args;
 	while((read = getline(&line, &len, fp)) != -1){
+		if(line == NULL || strcmp(line, "") == 0 || strcmp(line, "\n") == 0){
+			continue;
+		}
+		if(line[strlen(line)-1] == '\n'){
+			line[strlen(line)-1] = '\0';
+		}
 		args = (char**)malloc(sizeof(char*) * 2);
 		char* t = strtok(line, ":");
-		type = (char*)malloc(sizeof(char) * strlen(t));
+		type = (char*)malloc(sizeof(char) * (strlen(t)+1));
 		char *arg0 = strtok(NULL, ":");
-		args[0] = (char*)malloc(sizeof(char) * strlen(arg0));
+		args[0] = (char*)malloc(sizeof(char) * (strlen(arg0)+1));
 		char *arg1 = strtok(NULL, ":");
-		args[1] = (char*)malloc(sizeof(char) * strlen(arg1));
+		args[1] = (char*)malloc(sizeof(char) * (strlen(arg1) + 1));
 		strcpy(type, t);
 		strcpy(args[0], arg0);
 		strcpy(args[1], arg1);
@@ -103,9 +115,11 @@ void load_config(conf_elm_t **head){
 }
 
 void save_config(conf_elm_t **head){
+	/*Save conf elements into config file
+	 *To avoid race conditions first acquire the file lock using flock
+	 * */
 	struct flock fl = {F_WRLCK, SEEK_SET, 0, 0, getpid()};
 	int fd = open(config_file, O_WRONLY | O_CREAT);
-	printf("%d\n", *head==NULL);
 	if(fd == -1){
 		perror("Cannot open config file");
 		exit(1);
@@ -116,14 +130,15 @@ void save_config(conf_elm_t **head){
 	}
 
 	FILE *fp = fdopen(fd, "w");
+	fp = freopen(NULL, "w", fp);
 	if(*head == NULL){
-		fp = freopen(NULL, "w", fp);
+		//Nothing to save
 		return;
 	}
 	else{
+		conf_elm_t *backup = *head;
 		for(conf_elm_t *elm = *head; elm != NULL; elm = elm->next){
-			if(elm->args[1][strlen(elm->args[1])-2] == '\n')
-				elm->args[1][strlen(elm->args[1])-2] = '\0';
+
 			fprintf(fp, "%s:%s:%s\n", elm->type, elm->args[0], elm->args[1]);
 		}
 	}
@@ -153,7 +168,7 @@ char** get_conf(conf_elm_t **head, char *type, char *name){
 				rv[i+1]  = tmp->args[1];
 			}
 		}
-		rv[i+1] = NULL;
+		rv[i] = NULL;
 		return rv;
 	}else{
 		hash_t hash = hash_str(type) + hash_str(name);
@@ -167,21 +182,33 @@ char** get_conf(conf_elm_t **head, char *type, char *name){
 }
 
 void rm_config(conf_elm_t **head, char *type, char *name){
+	/*Delete element from linked list
+	 * if name is Null delete all elements with type = type
+	 * */
 	if(*head == NULL){
 		return;
 	}
 	conf_elm_t *prev;
 	if(name == NULL){
 		prev = *head;
-		for(conf_elm_t *tmp = *head; tmp != NULL; tmp = tmp->next){
+		for(conf_elm_t *tmp = *head; tmp != NULL;){
 			if(strcmp(tmp->type, type) == 0){
 				if(tmp->next == NULL){
-					if(tmp == prev)
+					if(tmp == prev){
 						*head = NULL;
-					else
+					}else{
 						prev->next = NULL;
+					}
+
 				}else{
-					prev->next = tmp->next;
+					if(tmp == prev){
+						*head = tmp->next;
+						tmp = *head;
+						prev = tmp;
+						continue;
+					}else{
+						prev->next = tmp->next;
+					}
 				}
 			}
 			prev = tmp;
@@ -198,7 +225,14 @@ void rm_config(conf_elm_t **head, char *type, char *name){
 					else
 						prev->next = NULL;
 				}else{
-					prev->next = tmp->next;
+					if(tmp == prev){
+						*head = tmp->next;
+						tmp = *head;
+						prev = tmp;
+						continue;
+					}else{
+						prev->next = tmp->next;
+					}
 				}
 			}
 			prev = tmp;

@@ -37,11 +37,11 @@ void print_colored(char* str, char color){
 
 typedef struct builtin_cmd{
 	char* name;
-	int (*handler)(command_t*, conf_elm_t*);
+	int (*handler)(command_t*, conf_elm_t**);
 	struct builtin_cmd *nxt;
 }builtin_cmd_t;
 
-builtin_cmd_t* create_builtin_cmd(const char* name, int (*handler)(command_t*, conf_elm_t*)){
+builtin_cmd_t* create_builtin_cmd(const char* name, int (*handler)(command_t*, conf_elm_t**)){
 	builtin_cmd_t *cmd = (builtin_cmd_t*)malloc(sizeof(builtin_cmd_t));
 	cmd->name = (char*)malloc(sizeof(char)*strlen(name));
 	strcpy(cmd->name, name);
@@ -50,7 +50,7 @@ builtin_cmd_t* create_builtin_cmd(const char* name, int (*handler)(command_t*, c
 	return cmd;
 }
 
-void add_cmd(builtin_cmd_t **cmd, const char* name, int (*handler)(command_t*, conf_elm_t*)){
+void add_cmd(builtin_cmd_t **cmd, const char* name, int (*handler)(command_t*, conf_elm_t**)){
 	builtin_cmd_t *new_cmd = create_builtin_cmd(name, handler);
 	if((*cmd) == NULL){
 		*cmd = new_cmd;
@@ -62,7 +62,7 @@ void add_cmd(builtin_cmd_t **cmd, const char* name, int (*handler)(command_t*, c
 	return;
 }
 
-int handle_cmd(builtin_cmd_t *head, command_t *cmd, conf_elm_t *elms){
+int handle_cmd(builtin_cmd_t *head, command_t *cmd, conf_elm_t **elms){
 	builtin_cmd_t *tmp = head;
 	for(;(tmp != NULL) && (strcmp(tmp->name, cmd->name) != 0); tmp = tmp->nxt);
 	if(tmp != NULL){
@@ -72,7 +72,7 @@ int handle_cmd(builtin_cmd_t *head, command_t *cmd, conf_elm_t *elms){
 }
 
 
-int kdiff_handler(command_t * command, conf_elm_t *conf_elms){
+int kdiff_handler(command_t * command, conf_elm_t **conf_elms){
 	char* str = "-a";
 	bool cleanup_flag = false;
 	if(command->arg_count == 2){
@@ -156,7 +156,7 @@ int kdiff_handler(command_t * command, conf_elm_t *conf_elms){
 	}
 }
 
-int shortdir_handler(command_t* command, conf_elm_t *conf_elms){
+int shortdir_handler(command_t* command, conf_elm_t **conf_elms){
 	if (command->arg_count > 0 ){
 		if (strcmp(command->args[0], "set") == 0){
 			if(!(command->arg_count > 0))
@@ -164,18 +164,18 @@ int shortdir_handler(command_t* command, conf_elm_t *conf_elms){
 			char cwd[1024];
 			getcwd(cwd, sizeof(cwd));
 			char **args = (char**)malloc(sizeof(char*) * 2);
-			args[0] = (char*)malloc(sizeof(char)*strlen(command->args[1]));
-			args[1] = (char*)malloc(sizeof(char)*strlen(cwd));
+			args[0] = (char*)malloc(sizeof(char)*(strlen(command->args[1]) + 1));
+			args[1] = (char*)malloc(sizeof(char)*(strlen(cwd)+1));
 			strcpy(args[0], command->args[1]);
 			strcpy(args[1], cwd);
-			add_conf_elm(&conf_elms, "alias", args);
-			printf("Alias set %s -> %s\n", command->args[1], cwd);
+			add_conf_elm(conf_elms, "alias", args);
+			printf("Alias set %s -> %s\n", args[0], args[1]);
 			return SUCCESS;
 		}else if(strcmp(command->args[0], "jump") == 0){
 			if(!(command->arg_count > 1))
 				return SUCCESS;
 
-			char *path = get_conf(&conf_elms, "alias", command->args[1])[0];
+			char *path = get_conf(conf_elms, "alias", command->args[1])[0];
 			if(path != NULL){
 				int r = chdir(path);
 				printf("chdir to %s : %d\n", path, r);
@@ -184,13 +184,13 @@ int shortdir_handler(command_t* command, conf_elm_t *conf_elms){
 		}else if(strcmp(command->args[0], "del") == 0){
 			if(!(command->arg_count > 1))
 				return EXIT;
-			rm_config(&conf_elms, "alias", command->args[1]);
+			rm_config(conf_elms, "alias", command->args[1]);
 			return SUCCESS;
 		}else if(strcmp(command->args[0], "clear") == 0){
-			rm_config(&conf_elms, "alias", NULL);
+			rm_config(conf_elms, "alias", NULL);
 			return SUCCESS;
 		}else if(strcmp(command->args[0], "list") == 0){
-			char **ls = get_conf(&conf_elms, "alias", NULL);
+			char **ls = get_conf(conf_elms, "alias", NULL);
 			if(ls == NULL)
 				return SUCCESS;
 			char *name, *path;
