@@ -256,13 +256,82 @@ int goodMorning_handler(command_t* command, conf_elm_t **conf_elms){
 	}
 int tobin_handler(command_t* command, conf_elm_t **conf_elms){
 	if(strcmp(command->name, "tobin")==0) {
+		int a = 0;
+		int b = 0;
+		int c = 0;
 		if (command->arg_count > 0) {
 			if(strcmp(command->args[0], "conv") == 0){
-				int a = atol(command->args[1]);
+				a = atol(command->args[1]);
 				binaryConversion(a);
 				return SUCCESS;
 
 		}
+		else if(strcmp(command->args[0], "div") == 0){
+			if(command->arg_count < 3){
+				return SUCCESS;
+			}
+				a = atol(command->args[1]);
+				b = atol(command->args[2]);
+				c = a/b;
+				binaryConversion(c);
+				return SUCCESS;
+
+		}
+		else if(strcmp(command->args[0], "add") == 0){
+			if(command->arg_count < 3){
+				return SUCCESS;
+			}
+				a = atol(command->args[1]);
+				b = atol(command->args[2]);
+				c = a + b;
+				binaryConversion(c);
+				return SUCCESS;
+		}
+		else if(strcmp(command->args[0], "del") == 0){
+			if(command->arg_count < 3){
+				return SUCCESS;
+			}
+				a = atol(command->args[1]);
+				b = atol(command->args[2]);
+				c = a - b;
+				binaryConversion(c);
+				return SUCCESS;
+
+		}
+		else if(strcmp(command->args[0], "mul") == 0){
+			if(command->arg_count < 3){
+				return SUCCESS;
+			}
+				a = atol(command->args[1]);
+				b = atol(command->args[2]);
+				c = a * b;
+				binaryConversion(c);
+				return SUCCESS;
+
+		}
+		else if(strcmp(command->args[0], "rshift") == 0){
+			if(command->arg_count < 3){
+				return SUCCESS;
+			}
+				a = atol(command->args[1]);
+				b = atol(command->args[2]);
+				c = a>>b;
+				binaryConversion(c);
+				return SUCCESS;
+
+		}
+		else if(strcmp(command->args[0], "lshift") == 0){
+			if(command->arg_count < 3){
+				return SUCCESS;
+			}
+				a = atol(command->args[1]);
+				b = atol(command->args[2]);
+				c = a<<b;
+				binaryConversion(c);
+				return SUCCESS;
+
+		}
+
 	}
 	}
 }
