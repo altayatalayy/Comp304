@@ -54,8 +54,9 @@ int process_command(struct command_t *command) {
 
 	int rv = handle_cmd(builtin_cmds, command, &conf_elms);
 	//printf("seashell c conelms == NULL %d\n", conf_elms == NULL);
-	if(r != UNKNOWN)
+	if(rv != UNKNOWN){
 		return rv;
+	}
 
 	if(strcmp(command->name, "highlight") == 0){
 		if(!(command->arg_count > 3)){
@@ -96,6 +97,7 @@ int process_command(struct command_t *command) {
 
 
 	pid_t pid=fork();
+	printf("%s\n", command->name);
 	if (pid==0){
 		/// This shows how to do exec with environ (but is not available on MacOs)
 		// extern char** environ; // environment variables
