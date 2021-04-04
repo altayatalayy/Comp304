@@ -215,6 +215,7 @@ int shortdir_handler(command_t* command, conf_elm_t **conf_elms){
 		return SUCCESS;
 	}
 }
+
 int highlight_handler(command_t* command, conf_elm_t **conf_elms){
 	if(strcmp(command->name, "highlight") == 0){
 		if(!(command->arg_count > 2)){
@@ -241,19 +242,25 @@ int highlight_handler(command_t* command, conf_elm_t **conf_elms){
 			}
 		}
 		return SUCCESS;
-	} 
 	}
+}
+
 int goodMorning_handler(command_t* command, conf_elm_t **conf_elms){
 	if(strcmp(command->name, "goodMorning") == 0){
 		int h, m;
 		h = atoi(strtok(command->args[0], "."));
 		m = atoi(strtok(NULL, "."));
 		char cronjob[256];
+		char crontab[1024];
 		sprintf(cronjob, "%d %d * * * rhythmbox %s", m, h, command->args[1]);
-		printf("%s\n", cronjob);
+		sprintf(crontab, "(crontab -l 2>/dev/null; echo \"%s\") | crontab -", cronjob);
+		printf("Wrote this to cron : %s\n", cronjob);
+		//printf("%s\n", crontab);
+		system(crontab);
 		return SUCCESS;
 	}
-	}
+}
+
 int tobin_handler(command_t* command, conf_elm_t **conf_elms){
 	if(strcmp(command->name, "tobin")==0) {
 		int a = 0;
@@ -265,74 +272,74 @@ int tobin_handler(command_t* command, conf_elm_t **conf_elms){
 				binaryConversion(a);
 				return SUCCESS;
 
-		}
-		else if(strcmp(command->args[0], "div") == 0){
-			if(command->arg_count < 3){
-				return SUCCESS;
 			}
-				a = atol(command->args[1]);
-				b = atol(command->args[2]);
-				c = a/b;
-				binaryConversion(c);
-				return SUCCESS;
+			else if(strcmp(command->args[0], "div") == 0){
+				if(command->arg_count < 3){
+					return SUCCESS;
+				}
+					a = atol(command->args[1]);
+					b = atol(command->args[2]);
+					c = a/b;
+					binaryConversion(c);
+					return SUCCESS;
+
+			}
+			else if(strcmp(command->args[0], "add") == 0){
+				if(command->arg_count < 3){
+					return SUCCESS;
+				}
+					a = atol(command->args[1]);
+					b = atol(command->args[2]);
+					c = a + b;
+					binaryConversion(c);
+					return SUCCESS;
+			}
+			else if(strcmp(command->args[0], "del") == 0){
+				if(command->arg_count < 3){
+					return SUCCESS;
+				}
+					a = atol(command->args[1]);
+					b = atol(command->args[2]);
+					c = a - b;
+					binaryConversion(c);
+					return SUCCESS;
+
+			}
+			else if(strcmp(command->args[0], "mul") == 0){
+				if(command->arg_count < 3){
+					return SUCCESS;
+				}
+					a = atol(command->args[1]);
+					b = atol(command->args[2]);
+					c = a * b;
+					binaryConversion(c);
+					return SUCCESS;
+
+			}
+			else if(strcmp(command->args[0], "rshift") == 0){
+				if(command->arg_count < 3){
+					return SUCCESS;
+				}
+					a = atol(command->args[1]);
+					b = atol(command->args[2]);
+					c = a>>b;
+					binaryConversion(c);
+					return SUCCESS;
+
+			}
+			else if(strcmp(command->args[0], "lshift") == 0){
+				if(command->arg_count < 3){
+					return SUCCESS;
+				}
+					a = atol(command->args[1]);
+					b = atol(command->args[2]);
+					c = a<<b;
+					binaryConversion(c);
+					return SUCCESS;
+
+			}
 
 		}
-		else if(strcmp(command->args[0], "add") == 0){
-			if(command->arg_count < 3){
-				return SUCCESS;
-			}
-				a = atol(command->args[1]);
-				b = atol(command->args[2]);
-				c = a + b;
-				binaryConversion(c);
-				return SUCCESS;
-		}
-		else if(strcmp(command->args[0], "del") == 0){
-			if(command->arg_count < 3){
-				return SUCCESS;
-			}
-				a = atol(command->args[1]);
-				b = atol(command->args[2]);
-				c = a - b;
-				binaryConversion(c);
-				return SUCCESS;
-
-		}
-		else if(strcmp(command->args[0], "mul") == 0){
-			if(command->arg_count < 3){
-				return SUCCESS;
-			}
-				a = atol(command->args[1]);
-				b = atol(command->args[2]);
-				c = a * b;
-				binaryConversion(c);
-				return SUCCESS;
-
-		}
-		else if(strcmp(command->args[0], "rshift") == 0){
-			if(command->arg_count < 3){
-				return SUCCESS;
-			}
-				a = atol(command->args[1]);
-				b = atol(command->args[2]);
-				c = a>>b;
-				binaryConversion(c);
-				return SUCCESS;
-
-		}
-		else if(strcmp(command->args[0], "lshift") == 0){
-			if(command->arg_count < 3){
-				return SUCCESS;
-			}
-				a = atol(command->args[1]);
-				b = atol(command->args[2]);
-				c = a<<b;
-				binaryConversion(c);
-				return SUCCESS;
-
-		}
-
-	}
 	}
 }
 
