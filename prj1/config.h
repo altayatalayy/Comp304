@@ -5,9 +5,45 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 
-const char* config_file = "/home/umur/.seashellrc";
+void get_config_file(char *file, int *status){
+	/* puts the config file name to the buffer file
+	 * if successful set status to 0 else set status to -1
+	 * if config file not found creates it
+	 * */
+	const char* config_file = "/.seashellrc";
+	strcat(strcpy(file, getenv("HOME")), config_file);
+	if(access( file, F_OK ) == 0) {
+		struct stat fileStat;
+		if(stat(file, &fileStat) < 0){
+			printf("stat error\n");
+			*status = -1;
+			return;
+		}
+		if(!(fileStat.st_mode & S_IRUSR) || !(fileStat.st_mode & S_IWUSR)){
+			printf("Permission error\n");
+			*status = -1;
+			return;
+		}
+		*status = 0;
+		return;
+	}else{
+		//printf("Config file does not exist\nCreating %s\n", file);
+		int fd = open(file, O_RDWR | O_CREAT, 0777);
+		if (fd < 0){
+			printf("Cannot create config file!\n");
+			*status = -1;
+			return;
+		}
+		close(fd);
+		*status = 0;
+		return;
+	}
+}
+
 typedef unsigned long long hash_t;
 
 typedef struct conf_elm{
@@ -20,7 +56,7 @@ typedef struct conf_elm{
 void save_config(conf_elm_t **head);
 
 hash_t hash_str(unsigned char *str) {
-	// sue djb2 for hashing a string
+	// use djb2 for hashing a string
 	hash_t hash = 5381;
 	int c;
 
@@ -31,6 +67,8 @@ hash_t hash_str(unsigned char *str) {
 }
 
 void hash_conf_elm(conf_elm_t *elm){
+	/*Hash conf elements type and name for easier checking
+	 * */
 	hash_t *hash = (hash_t*)malloc(sizeof(hash_t));
 	*hash = hash_str(elm->type) + hash_str(elm->args[0]);
 	elm->hash = *hash;
@@ -67,8 +105,15 @@ void load_config(conf_elm_t **head){
 	/*Load config elements from the file
 	 *For handling race conditions lock the file flock using fcntl
 	 * */
+	char config_file[512];
+	int status;
+	get_config_file(config_file, &status);
+	if(status != 0){
+		printf("Cannot open conf file exiting!\n");
+		exit(1);
+	}
 	struct flock fl = {F_RDLCK, SEEK_SET, 0, 0, getpid()};
-	int fd = open(config_file, O_RDONLY | O_CREAT);
+	int fd = open(config_file, O_RDONLY);
 	if(fd == -1){
 		perror("Cannot open config file");
 		exit(1);
@@ -115,11 +160,29 @@ void load_config(conf_elm_t **head){
 }
 
 void save_config(conf_elm_t **head){
-	/*Save conf elements into config file
-	 *To avoid race conditions first acquire the file lock using flock
+	/* Save conf elements into config file
+	 * To avoid race conditions first acquire the file lock using flock
+	 * Removes old config file and rewrites current config
 	 * */
+	char config_file[512];
+	int status;
+	get_config_file(config_file, &status);
+	if(status != 0){
+		printf("Cannot open conf file exiting!\n");
+		exit(1);
+	}
+	if(remove(config_file) != 0){
+		printf("cannot delete config file, exiting!\n");
+		exit(1);
+	}
+	get_config_file(config_file, &status);
+	if(status != 0){
+		printf("Cannot open conf file exiting!\n");
+		exit(1);
+	}
+
 	struct flock fl = {F_WRLCK, SEEK_SET, 0, 0, getpid()};
-	int fd = open(config_file, O_WRONLY | O_CREAT);
+	int fd = open(config_file, O_WRONLY);
 	if(fd == -1){
 		perror("Cannot open config file");
 		exit(1);
@@ -130,7 +193,6 @@ void save_config(conf_elm_t **head){
 	}
 
 	FILE *fp = fdopen(fd, "w");
-	fp = freopen(NULL, "w", fp);
 	if(*head == NULL){
 		//Nothing to save
 		return;
@@ -138,7 +200,6 @@ void save_config(conf_elm_t **head){
 	else{
 		conf_elm_t *backup = *head;
 		for(conf_elm_t *elm = *head; elm != NULL; elm = elm->next){
-
 			fprintf(fp, "%s:%s:%s\n", elm->type, elm->args[0], elm->args[1]);
 		}
 	}

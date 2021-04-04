@@ -14,19 +14,16 @@
 builtin_cmd_t *builtin_cmds = NULL;
 conf_elm_t *conf_elms = NULL;
 
-char* path;  
-char *token;
-char **pathArray; 
-
 int main() {
 	load_config(&conf_elms);
-	//printf("%s : %s\n", conf_elms->type, conf_elms->args[0]);
+
 	add_cmd(&builtin_cmds, "kdiff", kdiff_handler);
 	add_cmd(&builtin_cmds, "shortdir", shortdir_handler);
 	add_cmd(&builtin_cmds, "highlight", highlight_handler);
 	add_cmd(&builtin_cmds, "goodMorning", goodMorning_handler);
 	add_cmd(&builtin_cmds, "tobin", tobin_handler);
 	while (1) {
+		load_config(&conf_elms);
 		struct command_t *command=malloc(sizeof(struct command_t));
 		memset(command, 0, sizeof(struct command_t)); // set all bytes to 0
 
@@ -362,7 +359,11 @@ int prompt(struct command_t *command) {
 	buf[0] = 0;
   	while (1) {
 		c = getchar();
-		// printf("Keycode: %u\n", c); // DEBUG: uncomment for debugging
+		if(c == 10 && buf[0] == 0){//Empty line
+			printf("\n");
+			show_prompt();
+			continue;
+		}
 
 		if (c == 9){ // handle tab
 			buf[index++]='?'; // autocomplete
@@ -407,14 +408,13 @@ int prompt(struct command_t *command) {
 		if (c==4) // Ctrl+D
 			return EXIT;
   	}
-  	if (index>0 && buf[index-1]=='\n') // trim newline from the end
-  		index--;
-  	buf[index++] = 0; // null terminate string
+	if (index>0 && buf[index-1]=='\n') // trim newline from the end
+		index--;
+	buf[index++] = 0; // null terminate string
 
-  	strcpy(oldbuf, buf);
+	strcpy(oldbuf, buf);
 
-  	parse_command(buf, command);
-
+	parse_command(buf, command);
   	// print_command(command); // DEBUG: uncomment for debugging
 
 	// restore the old settings
