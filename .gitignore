@@ -10,6 +10,9 @@
 !prj*/**/*.[ch]
 !prj*/**/makefile
 
+!prj*/**/*.[ch]
+!prj*/**/Makefile
+
 
 hw*/**/CMakeFiles/
 hw*/**/*.mod.c
