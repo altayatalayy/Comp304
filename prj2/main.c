@@ -7,6 +7,7 @@
 
 #include "main.h"
 #include "queue.h"
+#include "log.h"
 
 /**
  * pthread_sleep takes an integer number of seconds to pause the current thread
@@ -95,7 +96,7 @@ size_t get_commentator(){
 void* moderator(void *vargp){
 	for(int i=0; i<q; i++){
 		//lock(question_mutex);
-		printf("question %d \n", i);
+		log("Moderator asks question %d", i);
 		size_t idx = get_commentator();
 		if(idx != -1){
 			unlock(turn)
