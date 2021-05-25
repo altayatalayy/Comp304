@@ -94,12 +94,15 @@ size_t get_commentator(){
 
 void* moderator(void *vargp){
 	for(int i=0; i<q; i++){
-		lock(question_mutex);
+		//lock(question_mutex);
 		printf("question %d \n", i);
 		size_t idx = get_commentator();
+		if(idx != -1){
+			unlock(turn)
+			//unlock(question_mutex);
+		}
+
 		printf("idx = %d\n", idx);
-		//wait_commentator(idx);
-		unlock(question_mutex);
 	}
 
 	return NULL;
@@ -107,10 +110,14 @@ void* moderator(void *vargp){
 
 void* commmentator(void *vargp){
 	if(probabilityCheck(p)){
-		//get_in_queue();
-		lock(question_mutex);
 		enqueue(queue, (int)pthread_self());
-		unlock(question_mutex);
+		lock(question_mutex);		
+		if(idx == (int)pthread_self()){
+			pthread_sleep(t);
+			unlock(question_mutex);
+
+		}
+		
 	}
 	return NULL;
 }
