@@ -101,13 +101,13 @@ void* moderator(void *vargp){
 	for(int i=0; i<q; i++){
 		log("Moderator asks question %d", i);
 		lock(question_mutex);
+		questionAsked = true;
+		unlock(question_mutex);
 		//lock(answer_mutex);
-		//questionAsked = true;
-		//unlock(question_mutex);
 		
 		size_t idx = get_commentator();
 		if(idx != -1){
-		//	unlock(answer_mutex);
+			unlock(answer_mutex);
 		}
 		printf("idx = %d\n", idx);
 	}
@@ -122,16 +122,12 @@ void* commmentator(void *vargp){
 	if(probabilityCheck(p)){
 		enqueue(queue, tid);
 		log("Commentator #%d generates answer, position in queue:%d",tid, queue->size)
-		//if(questionAsked){
-		//	lock(answer_mutex);
-		//}
-				
-		if(idx == (int)pthread_self()){
+		if(questionAsked && tid == idx){
+			lock(answer_mutex);
 			log("Commentator #%d's turn to speak for %f seconds", tid , tmp);
 			pthread_sleep(t);
-			unlock(question_mutex);
 			log("Commentator #%d finished speaking",tid);
-
+			unlock(answer_mutex);
 		}
 		log("Commentator #%d is cut short due to a breaking news", tid);
 	}
