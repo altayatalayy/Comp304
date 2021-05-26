@@ -1,12 +1,21 @@
 
-test: main.out
-	./main.out -n 1 -q 2 -t 5 -p 0.5 -b 0.5
+SRCFILES = $(shell find src/ -type f -name '*.c')
+OBJFILES = $(subst src/, bin, $(patsubst %.c, %.o, $(SRCFILES)))
 
-main.out: main.c main.h queue.o log.h
-	gcc main.c -o main.out queue.o
+TARGET = ./bin/main.out
 
+test: $(TARGET)
+	$(TARGET) -n 1 -q 2 -t 5 -p 0.5 -b 0.5
 
-queue.o: queue.c queue.h
-	gcc -c queue.c -o queue.o
+$(TARGET): main.c $(OBJFILES)
+	echo $(OBJFILES)
+	gcc main.c -o $(TARGET) $(OBJFILES) -I ./include
 
+bin/%.o: src/%.c include/%.h
+	gcc -c $(subst bin, src, $<) -o $@ -I ./include
 
+clean:
+	rm -rf bin
+
+.PHONY:
+	clean
