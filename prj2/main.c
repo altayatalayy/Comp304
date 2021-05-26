@@ -23,35 +23,42 @@ mutex_t question_mutex;
 Queue *queue;
 
 int n, q;
-float t, p;
+float t, p, b;
+bool _running = false;
 
 int main(int argc, char* argv[]) {
 	char arg = '\0';
 
-
-	while ((arg = getopt(argc, argv, "n:t:q:p:")) != -1) {
+	while ((arg = getopt(argc, argv, "n:t:q:p:b:")) != -1) {
 		switch (arg) {
 			case 'n': n = atoi(optarg); break;
 			case 't': t = atof(optarg); break;
 			case 'q': q = atoi(optarg); break;
 			case 'p': p = atof(optarg); break;
+			case 'b': b = atof(optarg); break;
 			default: fprintf(stderr, "Usage: %s -n <int> -t <float> -q <int> -p <float>\n", argv[0]); exit(EXIT_FAILURE);
 		}
 	}
-	printf("n = %d, q = %d, t = %f, p = %f\n", n, q, t, p);
+	printf("n = %d, q = %d, t = %f, p = %f, b = %f\n", n, q, t, p, b);
+
+	_running = true;
 
 	queue = createQueue(n+1);
-   	pthread_mutex_init(&mutex1, NULL);
+   	//pthread_mutex_init(&mutex1, NULL);
 
 	create_new_thread(moderator);
 	for(int i = 0; i<n; i++){
 			create_new_thread(commmentator);
 	}
+	create_new_thread(bnews);
 
-  	for(int i = 0; i < thread_count; i++){
+	pthread_join(tid[0], NULL);
+	_running = false;
+  	for(int i = 1; i < thread_count; i++){
   	     pthread_join(tid[i], NULL);
   	}
 
+	freeQueue(queue);
 	return 0;
 }
 
@@ -97,7 +104,6 @@ void* moderator(void *vargp){
 	for(int i=0; i<q; i++){
 		log("Moderator asks question %d", i);
 		lock(question_mutex);
-		printf("question %d \n", i);
 		size_t idx = get_commentator();
 		//printf("idx = %d\n", idx);
 		//wait_commentator(idx);
@@ -113,6 +119,19 @@ void* commmentator(void *vargp){
 		lock(question_mutex);
 		enqueue(queue, (int)pthread_self());
 		unlock(question_mutex);
+	}
+	return NULL;
+}
+
+void* bnews(void *vargs){
+	while(_running){
+		if(probabilityCheck(b)){
+			log("Breaking News!");
+			pthread_sleep(5);
+			log("Breaking news ends");
+		}else{
+			pthread_sleep(1);
+		}
 	}
 	return NULL;
 }

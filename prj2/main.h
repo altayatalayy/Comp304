@@ -16,6 +16,7 @@ void* commmentator(void *vargp);
 #define mutex_t pthread_mutex_t
 #define lock(mutex) pthread_mutex_lock(&(mutex))
 #define unlock(mutex) pthread_mutex_unlock(&(mutex))
+void* bnews(void *vargs);
 
 bool probabilityCheck(float p);
 //bool questionReady = false;
