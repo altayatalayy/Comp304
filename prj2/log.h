@@ -19,7 +19,7 @@ char* get_time(){
 
 #define log(fmt, ...) {\
 	char* time = get_time();\
-	printf("%s " fmt "\n", time, __VA_ARGS__);\
+	printf("%s " fmt "\n", time, ##__VA_ARGS__);\
 	free(time);}
 
 #endif
