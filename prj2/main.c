@@ -22,24 +22,28 @@ mutex_t question_mutex;
 
 Queue *queue;
 
-int n, q;
-float t, p, b;
 bool _running = false;
+int n, q, t;
+float p, b;
+size_t idx;
+int threadID;
+bool questionAsked;
 
 int main(int argc, char* argv[]) {
+	srand(time(0));
 	char arg = '\0';
 
 	while ((arg = getopt(argc, argv, "n:t:q:p:b:")) != -1) {
 		switch (arg) {
 			case 'n': n = atoi(optarg); break;
-			case 't': t = atof(optarg); break;
+			case 't': t = atoi(optarg); break;
 			case 'q': q = atoi(optarg); break;
 			case 'p': p = atof(optarg); break;
 			case 'b': b = atof(optarg); break;
 			default: fprintf(stderr, "Usage: %s -n <int> -t <float> -q <int> -p <float>\n", argv[0]); exit(EXIT_FAILURE);
 		}
 	}
-	printf("n = %d, q = %d, t = %f, p = %f, b = %f\n", n, q, t, p, b);
+	printf("n = %d, q = %d, t = %d, p = %f, b = %f\n", n, q, t, p, b);
 
 	_running = true;
 
@@ -47,7 +51,7 @@ int main(int argc, char* argv[]) {
    	//pthread_mutex_init(&mutex1, NULL);
 
 	create_new_thread(moderator);
-	for(int i = 0; i<n; i++){
+	for(threadID = 0; threadID<n; threadID++){
 			create_new_thread(commmentator);
 	}
 	create_new_thread(bnews);
@@ -93,7 +97,7 @@ int pthread_sleep(double seconds){
 
 
 void create_new_thread(void *(func)(void* vargp)){
-	pthread_create(&tid[thread_count++], NULL, func, NULL);
+	pthread_create(&tid[thread_count++], NULL, func, (void *)threadID);
 }
 
 size_t get_commentator(){
@@ -104,21 +108,37 @@ void* moderator(void *vargp){
 	for(int i=0; i<q; i++){
 		log("Moderator asks question %d", i);
 		lock(question_mutex);
+		//lock(answer_mutex);
+		//questionAsked = true;
+		//unlock(question_mutex);
 		size_t idx = get_commentator();
-		//printf("idx = %d\n", idx);
-		//wait_commentator(idx);
-		unlock(question_mutex);
+		if(idx != -1){
+		//	unlock(answer_mutex);
+		}
+		log("idx = %zu", idx);
 	}
 
 	return NULL;
 }
 
 void* commmentator(void *vargp){
+	int tid;
+    tid = (int)vargp;
+	float tmp = rand() % (int) t;
 	if(probabilityCheck(p)){
-		//get_in_queue();
-		lock(question_mutex);
-		enqueue(queue, (int)pthread_self());
-		unlock(question_mutex);
+		enqueue(queue, tid);
+		log("Commentator #%d generates answer, position in queue:%d",tid, queue->size)
+		//if(questionAsked){
+		//	lock(answer_mutex);
+		//}
+		if(idx == (int)pthread_self()){
+			log("Commentator #%d's turn to speak for %f seconds", tid , tmp);
+			pthread_sleep(t);
+			unlock(question_mutex);
+			log("Commentator #%d finished speaking",tid);
+
+		}
+		log("Commentator #%d is cut short due to a breaking news", tid);
 	}
 	return NULL;
 }
@@ -147,11 +167,3 @@ bool probabilityCheck(float p){
 		return flag;
 	}
 }
-
-//bool questionReady = false;
-//pthread_cond_t conditionvar;
-
-//queue new queue answerQueue
-//int questionNumber = 50;
-
-
