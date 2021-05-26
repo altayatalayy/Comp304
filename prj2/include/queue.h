@@ -17,9 +17,11 @@ Queue* createQueue(int capacity);
 void freeQueue(Queue* queue);
 int isFull(struct Queue* queue);
 int isEmpty(struct Queue* queue);
-void enqueue(struct Queue* queue, int data);
+int enqueue(struct Queue* queue, int data);
 int dequeue(struct Queue* queue);
 int front(struct Queue* queue);
 int end(struct Queue* queue);
+int getSize(struct Queue* queue);
+void clear(struct Queue* queue);
 
 #endif

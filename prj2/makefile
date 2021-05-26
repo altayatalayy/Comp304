@@ -5,7 +5,7 @@ OBJFILES = $(subst src/, bin, $(patsubst %.c, %.o, $(SRCFILES)))
 TARGET = ./bin/main.out
 
 test: $(TARGET)
-	$(TARGET) -n 1 -q 2 -t 5 -p 0.5 -b 0.5
+	$(TARGET) -n 4 -p 0.75 -q 5 -t 3 -b 0.05
 
 $(TARGET): main.c $(OBJFILES)
 	echo $(OBJFILES)

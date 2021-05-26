@@ -32,14 +32,16 @@ int isEmpty(struct Queue* queue) {
 	return (size == 0);
 }
 
-void enqueue(struct Queue* queue, int data) {
+int enqueue(struct Queue* queue, int data) {
     if (isFull(queue))
-        return;
+        return -1;
 	pthread_mutex_lock(&(queue->mutex));
     queue->end = (queue->end + 1) % queue->capacity;
     queue->list[queue->end] = data;
     queue->size = queue->size + 1;
+    int answer = queue->size;
 	pthread_mutex_unlock(&(queue->mutex));
+    return answer;
 }
 
 
@@ -64,4 +66,15 @@ int end(struct Queue* queue) {
     if (isEmpty(queue))
         return -1;
     return queue->list[queue->end];
+}
+void clear(struct Queue* queue){
+    for(int i = 0; i < queue->size; i++){
+        dequeue(queue);
+    }
+}
+int getSize(struct Queue* queue){
+        pthread_mutex_lock(&(queue->mutex));
+        int answer = queue->size;
+        pthread_mutex_unlock(&(queue->mutex));
+        return answer;
 }

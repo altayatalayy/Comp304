@@ -14,6 +14,7 @@
 #define mutex_t pthread_mutex_t
 #define lock(mutex) pthread_mutex_lock(&(mutex))
 #define unlock(mutex) pthread_mutex_unlock(&(mutex))
+#define init_mutex(mutex) pthread_mutex_init(&(mutex), NULL);
 
 void join(size_t idx);
 int pthread_sleep(double seconds);

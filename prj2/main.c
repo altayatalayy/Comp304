@@ -19,7 +19,7 @@
 
 
 mutex_t mutex1;
-mutex_t question_mutex;
+mutex_t question_mutex, bnews_mutex;
 
 Queue *queue;
 
@@ -50,16 +50,22 @@ int main(int argc, char* argv[]) {
 
 	queue = createQueue(n+1);
    	//pthread_mutex_init(&mutex1, NULL);
+   	if(pthread_mutex_init(&question_mutex,NULL)){
+        return -1;
+    }
+    if(pthread_mutex_init(&bnews_mutex,NULL)){
+        return -1;
+    }
 
 	create_new_thread(moderator);
 	for(threadID = 0; threadID<n; threadID++){
 			create_new_thread(commmentator);
+
 	}
 	create_new_thread(bnews);
 
 	join(0);
-	_running = false;
-  	for(int i = 1; i < n + 2; i++){
+  	for(int i = 1; i < n+1; i++){
 		join(i);
   	}
 
@@ -75,49 +81,75 @@ size_t get_commentator(){
 
 void* moderator(void *vargp){
 	for(int i=0; i<q; i++){
-		log("Moderator asks question %d", i);
+		clear(queue);
 		lock(question_mutex);
-		//lock(answer_mutex);
-		//questionAsked = true;
-		//unlock(question_mutex);
-		idx = get_commentator();
-		if(idx != -1){
-		//	unlock(answer_mutex);
+		log("Moderator asks question %d", i);
+		questionAsked = true;
+		pthread_sleep(0.4);
+		unlock(question_mutex);
+		while(!isEmpty(queue)){
+			lock(question_mutex);
+			idx = get_commentator();
+			unlock(question_mutex);
 		}
-		log("idx = %zu", idx);
+
+		if(isEmpty(queue)){
+			lock(question_mutex);
+			questionAsked = false;
+			unlock(question_mutex);
+			}
+		//log("idx = %zu", idx);
 	}
 
+
+	_running = false;
 	return NULL;
 }
 
 void* commmentator(void *vargp){
-	size_t tid;
-    tid = (size_t)vargp;
-	float tmp = rand() % (size_t) t;
-	if(probabilityCheck(p)){
-		enqueue(queue, (int)tid);
-		log("Commentator #%zu generates answer, position in queue:%d",tid, queue->size)
-		//if(questionAsked){
-		//	lock(answer_mutex);
-		//}
-		if(idx == tid){
-			log("Commentator #%zu's turn to speak for %f seconds", tid , tmp);
-			pthread_sleep(t);
-			unlock(question_mutex);
-			log("Commentator #%zu finished speaking",tid);
-
+	int tid;
+    tid = (int)vargp;
+    int n = 0;
+    while(_running){
+    	if(questionAsked){
+			if(n == 0 && probabilityCheck(p)){
+				n++;
+				int pos = enqueue(queue, tid);
+				log("Commentator #%d generates answer, position in queue:%d",tid, pos);
+			} else if(n == 1){
+		 		if(tid == idx){
+		 			float tmp = (float)(rand() % 100)/100.0f * (float)t;
+					lock(question_mutex);
+					log("Commentator #%d's turn to speak for %f seconds", tid , tmp);
+					//float dt = 0;
+					//while(dt<tmp){
+					//	float dt1 = 0.01;
+						pthread_sleep(tmp);
+						//dt += dt1;
+						//lock(bnews_mutex);
+				//	}
+					log("Commentator #%d finished speaking",tid);
+					unlock(question_mutex);
+				}
+			}
+		}else{
+			n = 0;
 		}
-		log("Commentator #%zu is cut short due to a breaking news", tid);
+		//log("Commentator #%d is cut short due to a breaking news", tid);
 	}
 	return NULL;
 }
 
+
 void* bnews(void *vargs){
 	while(_running){
+		//unlock(bnews_mutex);
 		if(probabilityCheck(b)){
+			//lock(bnews_mutex);
 			log("Breaking News!");
 			pthread_sleep(5);
 			log("Breaking news ends");
+			//unlock(bnews_mutex);
 		}else{
 			pthread_sleep(1);
 		}
