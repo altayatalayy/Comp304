@@ -9,7 +9,7 @@
 #define __UTIL_H__
 
 
-#define MAX_THREAD_NUM 5
+#define MAX_THREAD_NUM 7
 
 #define mutex_t pthread_mutex_t
 #define lock(mutex) pthread_mutex_lock(&(mutex))

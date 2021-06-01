@@ -31,7 +31,7 @@ int threadID;
 bool questionAsked;
 
 int main(int argc, char* argv[]) {
-	srand(time(0));
+	srand(420);
 	char arg = '\0';
 
 	while ((arg = getopt(argc, argv, "n:t:q:p:b:")) != -1) {
@@ -53,9 +53,9 @@ int main(int argc, char* argv[]) {
    	if(pthread_mutex_init(&question_mutex,NULL)){
         return -1;
     }
-    if(pthread_mutex_init(&bnews_mutex,NULL)){
-        return -1;
-    }
+    //if(pthread_mutex_init(&bnews_mutex,NULL)){
+      //  return -1;
+   // }
 
 	create_new_thread(moderator);
 	for(threadID = 0; threadID<n; threadID++){
@@ -85,7 +85,7 @@ void* moderator(void *vargp){
 		lock(question_mutex);
 		log("Moderator asks question %d", i);
 		questionAsked = true;
-		pthread_sleep(0.4);
+		//pthread_sleep(0.4);
 		unlock(question_mutex);
 		while(!isEmpty(queue)){
 			lock(question_mutex);
