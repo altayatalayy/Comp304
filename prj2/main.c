@@ -95,15 +95,16 @@ size_t get_commentator(){
 
 void ask_question(){
 	static int i = 0;
-	if(i != 0) lock(question_mutex);
+	//if(i != 0) lock(question_mutex);
 	log("Moderator asks question %d", i++);
 	//unlock(question_mutex);
 	//wait for all answwers
 	unlock(question_mutex);
 	lock(mutex1);
+
 	//printf("INSIDE ask_question");
 	unlock(mutex1);
-	//lock(question_mutex);
+
 }
 
 void get_answers(){
@@ -174,13 +175,14 @@ void* commmentator(void *vargp){
 			//printf("%d,     %d \n",pos,n-1);
 			if(pos == n-1){
 				unlock(mutex1);
+				lock(question_mutex);
 				//printf("After lock mutex1\n");
 			}
 		}
 		lock(mutex1);
-		//printf("After lock mutex1");
+		//printf("After lock mutex1\n");
 		unlock(mutex1);
-		//printf("After unlock mutex1");
+		//printf("After unlock mutex1\n");
 		//wait_speak(mutex2);
 		lock(mutex[tid]);
 		speak(tid);
