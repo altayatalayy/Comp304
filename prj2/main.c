@@ -50,12 +50,10 @@ int main(int argc, char* argv[]) {
 
 	queue = createQueue(n+1);
    	//pthread_mutex_init(&mutex1, NULL);
-   	if(pthread_mutex_init(&question_mutex,NULL)){
-        return -1;
-    }
-    if(pthread_mutex_init(&bnews_mutex,NULL)){
-        return -1;
-    }
+	if(pthread_mutex_init(&(question_mutex), NULL))
+		return -1;
+    if(pthread_mutex_init(&(bnews_mutex), NULL))
+		return -1;
 
 	create_new_thread(moderator);
 	for(threadID = 0; threadID<n; threadID++){
@@ -85,7 +83,7 @@ void* moderator(void *vargp){
 		lock(question_mutex);
 		log("Moderator asks question %d", i);
 		questionAsked = true;
-		pthread_sleep(0.4);
+		pthread_sleep(2);
 		unlock(question_mutex);
 		while(!isEmpty(queue)){
 			lock(question_mutex);
@@ -121,13 +119,12 @@ void* commmentator(void *vargp){
 		 			float tmp = (float)(rand() % 100)/100.0f * (float)t;
 					lock(question_mutex);
 					log("Commentator #%d's turn to speak for %f seconds", tid , tmp);
-					//float dt = 0;
-					//while(dt<tmp){
-					//	float dt1 = 0.01;
-						pthread_sleep(tmp);
-						//dt += dt1;
+					float st = 0, dt = 0.01f;
+					while(st < tmp){
+						pthread_sleep(dt);
+						st += dt;
 						//lock(bnews_mutex);
-				//	}
+					}
 					log("Commentator #%d finished speaking",tid);
 					unlock(question_mutex);
 				}
