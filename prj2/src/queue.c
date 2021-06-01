@@ -38,8 +38,8 @@ int enqueue(struct Queue* queue, int data) {
 	pthread_mutex_lock(&(queue->mutex));
     queue->end = (queue->end + 1) % queue->capacity;
     queue->list[queue->end] = data;
-    queue->size = queue->size + 1;
     int answer = queue->size;
+    queue->size = queue->size + 1;
 	pthread_mutex_unlock(&(queue->mutex));
     return answer;
 }

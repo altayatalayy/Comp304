@@ -13,7 +13,7 @@ char* get_time(){
 	struct timeval te;
 	gettimeofday(&te, NULL); // get current time
 	long long milliseconds = te.tv_sec*1000LL + te.tv_usec/1000; // calculate milliseconds
-	sprintf(rv, "[%lld:%lld.%lld]", (milliseconds/1000/60)%60, (milliseconds/1000)%60, milliseconds%1000);
+	sprintf(rv, "[%2.0lld:%2.0lld.%3.0lld]", (milliseconds/1000/60)%60, (milliseconds/1000)%60, milliseconds%1000);
 	return rv;
 }
 
