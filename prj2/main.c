@@ -20,7 +20,7 @@
 
 mutex_t mutex1,mutex2,mutex3,mutex4;
 mutex_t question_mutex, bnews_mutex;
-mutex_t mutex[4], mutex_2[4];
+mutex_t mutex[4], mutex_2[4], mutex_3[4];
 
 Queue *queue;
 
@@ -69,6 +69,9 @@ int main(int argc, char* argv[]) {
 		if(pthread_mutex_init(&mutex_2[a], NULL))
 			return -1;
 		lock(mutex_2[a]);
+		if(pthread_mutex_init(&mutex_3[a], NULL))
+			return -1;
+		lock(mutex_3[a]);
 
 	}
 
@@ -84,6 +87,7 @@ int main(int argc, char* argv[]) {
 	join(0);
   	for(int i = 1; i < n+1; i++){
 		join(i);
+		printf("%d\n",i);
   	}
 
 	freeQueue(queue);
@@ -94,7 +98,9 @@ int main(int argc, char* argv[]) {
 
 #define get_commentator() (size_t)dequeue(queue)
 
+int currentSize ;
 void ask_question(){
+	lock(mutex3);
 	static int i = 0;
 	//if(i != 0) lock(question_mutex);
 	log("Moderator asks question %d", i++);
@@ -102,6 +108,8 @@ void ask_question(){
 	//wait for all answwers
 	unlock(question_mutex);
 	pthread_sleep(0.5);
+	currentSize = getSize(queue);
+	unlock(mutex3);
 	lock(mutex1);
 
 	//printf("INSIDE ask_question");
@@ -141,6 +149,7 @@ void* moderator(void *vargp){
 		//log("idx = %zu", idx);
 		*/
 	}
+	_running = false;
 	return NULL;
 }
 
@@ -154,6 +163,7 @@ void wait_speak(){
 	lock(mutex2);
 	unlock(mutex2);
 }
+
 
 void speak(int tid){
 	float tmp = (float)(rand() % 100)/100.0f * (float)t;
@@ -176,11 +186,13 @@ void* commmentator(void *vargp){
 	for(int i=0; i<q; i++){
 		wait_question(tid);
 		//pthread_sleep(0.01);
-		if(probabilityCheck(1)){
+		if(probabilityCheck(p)){
 			int pos = enqueue(queue, tid);
 			log("Commentator #%d generates answer, position in queue:%d",tid, pos);
-			//printf("%d,     %d \n",pos,n-1);
-			if(pos == n-1){
+			lock(mutex3);
+			//printf("%d,     %d \n",pos,currentSize);
+			unlock(mutex3);
+			if(pos == currentSize-1){
 				unlock(mutex1);
 				lock(question_mutex);
 				//printf("After lock mutex1\n");
