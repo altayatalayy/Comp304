@@ -1,9 +1,11 @@
 #include "util.h"
 
-pthread_t tid[MAX_THREAD_NUM] = {0};
+static size_t thread_count = 0;
+static pthread_t tid[MAX_THREAD_NUM] = {0};
 
-void join(size_t idx){
-	 pthread_join(tid[idx], NULL);
+void join_all(void){
+	for(int i=0; i<thread_count; i++)
+		 pthread_join(tid[i], NULL);
 }
 
 int pthread_sleep(double seconds){
@@ -37,7 +39,6 @@ int pthread_sleep(double seconds){
 
 
 void create_new_thread(void *(func)(void* vargp)){
-	static size_t thread_count= 0;
 	pthread_create(&tid[thread_count], NULL, func, (void *)thread_count);
 	thread_count++;
 }

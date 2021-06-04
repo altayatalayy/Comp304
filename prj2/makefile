@@ -15,7 +15,7 @@ bin/%.o: src/%.c include/%.h
 	gcc -c $(subst bin, src, $<) -o $@ -I ./include
 
 clean:
-	rm -rf bin
+	rm -rf bin/*
 
 .PHONY:
 	clean
