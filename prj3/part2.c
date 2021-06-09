@@ -8,8 +8,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
-#include<time.h>
-
+#include <sys/time.h>
 
 #define TLB_SIZE 16
 #define PAGES 1024
@@ -89,7 +88,7 @@ int findLastRecentlyUsed(){
     int physicalPageIndex = 0;
     int temp = physicalPageCount[0];
     for(int i = 0; i<FRAME;i++){
-      if(temp > physicalPageCount[i]){
+      if(temp < physicalPageCount[i]){
         temp = physicalPageCount[i];
         physicalPageIndex = i;
       }
@@ -97,11 +96,17 @@ int findLastRecentlyUsed(){
     return physicalPageIndex;
 }
 
+float timedifference_msec(struct timeval t0, struct timeval t1)
+{
+    return (t1.tv_sec - t0.tv_sec) * 1000.0f + (t1.tv_usec - t0.tv_usec) / 1000.0f;
+}
 
+struct timeval stop, start;
 int main(int argc, const char *argv[]) {
-  time_t start;
-  time_t recent;
-  int t =time(&start);
+  gettimeofday(&start, NULL);
+  //gettimeofday(&start2, NULL);
+  //float x = timedifference_msec(start,start2);
+  //printf("%f\n",x);
   if (argc != 5) {
     fprintf(stderr, "Usage ./virtmem backingstore input\n");
     exit(1);
@@ -161,19 +166,29 @@ int main(int argc, const char *argv[]) {
     int logical_page = (logical_address >> OFFSET_BITS) & PAGE_MASK;
 
     ///////
-    
+    float timediff = 0;
     int physical_page = search_tlb(logical_page);
     // TLB hit
     if (physical_page != -1) {
       tlb_hits++;
       //printf("%d \n",physical_page);
-      physicalPageCount[physical_page] = time(&recent)-t;
+      gettimeofday(&stop, NULL);
+      timediff = timedifference_msec(start,stop);
+      printf("%f\n",timediff);
+      //printf("%d\n",(int)timediff);
+      physicalPageCount[physical_page] = (int)(timediff*1000);
+      //printf("%d\n", physicalPageCount[physical_page]);
       // TLB miss
     } else {
       physical_page = pagetable[logical_page];
       
       if(physical_page!= -1){
-        physicalPageCount[physical_page] = time(&recent)-t;
+        gettimeofday(&stop, NULL);
+        timediff = timedifference_msec(start,stop);
+
+
+        physicalPageCount[physical_page] = (int)(timediff*1000);
+        //printf("%d\n", physicalPageCount[physical_page]);
       }
       
       
@@ -200,13 +215,20 @@ int main(int argc, const char *argv[]) {
          if(free_frame == FRAME-1){
             page_faults++;
             int tmp = findLastRecentlyUsed();
+            //printf("%d\n",tmp);
             physical_page = tmp;
             pagetable[logical_page] = physical_page;
-            physicalPageCount[physical_page] = time(&recent)-t;
+            gettimeofday(&stop, NULL);
+            timediff = timedifference_msec(start,stop);
+            physicalPageCount[physical_page] = (int)timediff;
+            //printf("%d\n", physicalPageCount[physical_page]);
           }else{
             page_faults++;
             physical_page = free_frame;
-            physicalPageCount[free_frame] = time(&recent)-t;
+            gettimeofday(&stop, NULL);
+            timediff = timedifference_msec(start,stop);
+            physicalPageCount[free_frame] = (int)timediff;
+            //printf("%d\n", physicalPageCount[physical_page]);
 
             free_frame++;
             pagetable[logical_page] = physical_page;
