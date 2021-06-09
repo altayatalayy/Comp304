@@ -80,9 +80,9 @@ void add_to_tlb(int logical, int physical) {
   tlbindex++;
 }
 
-int findLastUsed(){
-    int temp = 0;
+int findLastRecentlyUsed(){
     int physicalPageIndex = 0;
+    int temp = physicalPageCount[0];
     for(int i = 0; i<FRAME;i++){
       if(temp > physicalPageCount[i]){
         temp = physicalPageCount[i];
@@ -128,8 +128,8 @@ int main(int argc, const char *argv[]) {
   for (i = 0; i < PAGES; i++) {
     pagetable[i] = -1;
   }
-  for (i = 0; i<=FRAME; i++){
-    physicalPageCount[i] = -1;
+  for (i = 0; i<FRAME+1; i++){
+    physicalPageCount[i] = 0;
   }
   
   // Character buffer for reading lines of input file.
@@ -192,10 +192,16 @@ int main(int argc, const char *argv[]) {
         else if(policyChoice==1){
          if(free_frame == FRAME-1){
             page_faults++;
-            int tmp = findLastUsed();
+            //printf("%d\n",physicalPageCount[255]);
+            //printf("%d\n",physicalPageCount[1]);
+            //printf("%d\n",physicalPageCount[2]);
+            //printf("%d\n",physicalPageCount[3]);
+
+            int tmp = findLastRecentlyUsed();
             physical_page = tmp;
-           // printf("%d\n",physicalPageCount[0]);
+            //printf("%d\n",tmp);
             pagetable[logical_page] = physical_page;
+            physicalPageCount[physical_page] += 1;
             //printf("%d\n",physical_page);
             //printf("%d\n",free_frame);
         }else{
