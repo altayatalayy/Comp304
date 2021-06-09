@@ -12,11 +12,11 @@
 
 #define TLB_SIZE 16
 #define PAGES 1024
-#define PAGE_MASK /* TODO */
+#define PAGE_MASK 1023
 
 #define PAGE_SIZE 1024
 #define OFFSET_BITS 10
-#define OFFSET_MASK /* TODO */
+#define OFFSET_MASK 1023
 
 #define MEMORY_SIZE PAGES * PAGE_SIZE
 
@@ -50,18 +50,35 @@ int max(int a, int b)
 
 /* Returns the physical address from TLB or -1 if not present. */
 int search_tlb(unsigned char logical_page) {
-    /* TODO */
+  /* TODO */
+    int a = tlbindex;  
+    while(a!=0){
+      a--;
+      struct tlbentry *item = &tlb[a % TLB_SIZE];
+      if(item->logical == logical_page){
+          return item->physical;
+          break;
+        }
+    }
+    return -1; 
 }
 
 /* Adds the specified mapping to the TLB, replacing the oldest mapping (FIFO replacement). */
 void add_to_tlb(unsigned char logical, unsigned char physical) {
     /* TODO */
+  //Using tlbindex % TLB_SIZE for the next space in tlb.
+  struct tlbentry *item = &tlb[tlbindex % TLB_SIZE];
+  
+  item->logical = logical;
+  item->physical = physical;
+  tlbindex++;
+
 }
 
 int main(int argc, const char *argv[])
 {
   if (argc != 3) {
-    fprintf(stderr, "Usage ./virtmem backingstore input\n");
+    fprintf(stderr, "Usage ./part1 backingstore input\n");
     exit(1);
   }
   
@@ -77,8 +94,8 @@ int main(int argc, const char *argv[])
   for (i = 0; i < PAGES; i++) {
     pagetable[i] = -1;
   }
-  
-  // Character buffer for reading lines of input file.
+
+ // Character buffer for reading lines of input file.
   char buffer[BUFFER_SIZE];
   
   // Data we need to keep track of to compute stats at end.
@@ -95,8 +112,11 @@ int main(int argc, const char *argv[])
 
     /* TODO 
     / Calculate the page offset and logical page number from logical_address */
-    int offset =
-    int logical_page =
+    int offset = logical_address & OFFSET_MASK;
+    // printf("%d\n",offset);
+    int logical_page = (logical_address >> OFFSET_BITS) & PAGE_MASK;
+    //printf("%d\n",logical_page);
+
     ///////
     
     int physical_page = search_tlb(logical_page);
@@ -106,12 +126,17 @@ int main(int argc, const char *argv[])
       // TLB miss
     } else {
       physical_page = pagetable[logical_page];
-      
       // Page fault
       if (physical_page == -1) {
           /* TODO */
-      }
+        page_faults++;
+        physical_page = free_page;
+        free_page++;
+        pagetable[logical_page] = physical_page;
 
+        //Bring to main memory  
+        memcpy(main_memory + physical_page * PAGE_SIZE, backing + logical_page * PAGE_SIZE, PAGE_SIZE);
+      }
       add_to_tlb(logical_page, physical_page);
     }
     
