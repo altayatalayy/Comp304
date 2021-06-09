@@ -80,6 +80,16 @@ void add_to_tlb(int logical, int physical) {
   tlbindex++;
 }
 
+int findLastUsed(){
+    int temp = 0;
+    for(int i = 0; i<FRAME;i++){
+      if(temp > physicalPageCount[i]){
+        temp = physicalPageCount[i];
+      }
+    }
+    return temp;
+}
+
 
 
 int main(int argc, const char *argv[]) {
@@ -148,9 +158,11 @@ int main(int argc, const char *argv[]) {
     // TLB hit
     if (physical_page != -1) {
       tlb_hits++;
+      physicalPageCount[physical_page] += 1;
       // TLB miss
     } else {
       physical_page = pagetable[logical_page];
+      physicalPageCount[physical_page] += 1;
       
       // Page fault
       if (physical_page == -1) {
@@ -172,16 +184,18 @@ int main(int argc, const char *argv[]) {
 
         /* Least Recently Used */
         else if(policyChoice==1){
-       /*   if(free_page == FRAME-1){
-            free_page = 0;
+         if(free_page == FRAME-1){
+          printf("BURASIIIIIIIASDJASODJAPDPASDASDPOOASJDPJASPDOJSAPDJPAOSJDPOAJSDPOJASPDJPSAJDPASJPD");
+            page_faults++;
+            physical_page = findLastUsed();
+            printf("%d\n",physical_page);
+            pagetable[logical_page] = physical_page;
         }
           page_faults++;
           physical_page = free_page;
-          physicalPageCount[]
+          physicalPageCount[free_page] = 1;
           free_page++;
           pagetable[logical_page] = physical_page;
-      */     
-          return 0; 
         }
 
       }
