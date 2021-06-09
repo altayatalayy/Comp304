@@ -192,27 +192,27 @@ int main(int argc, const char *argv[]) {
         else if(policyChoice==1){
          if(free_frame == FRAME-1){
             page_faults++;
-            //printf("%d\n",physicalPageCount[255]);
-            //printf("%d\n",physicalPageCount[1]);
-            //printf("%d\n",physicalPageCount[2]);
-            //printf("%d\n",physicalPageCount[3]);
-
             int tmp = findLastRecentlyUsed();
             physical_page = tmp;
             //printf("%d\n",tmp);
+            printf("%d\n",physicalPageCount[255]);
+            printf("%d\n",physicalPageCount[64]);
+            printf("%d\n",physicalPageCount[65]);
+
             pagetable[logical_page] = physical_page;
             physicalPageCount[physical_page] += 1;
             //printf("%d\n",physical_page);
             //printf("%d\n",free_frame);
-        }else{
-          page_faults++;
-          physical_page = free_frame;
-          physicalPageCount[free_frame] = 1;
+          }else{
+            page_faults++;
+            physical_page = free_frame;
+            physicalPageCount[free_frame] = 1;
 
-          free_frame++;
-          //printf("%d\n",physical_page);
-          pagetable[logical_page] = physical_page;
-        }          
+            free_frame++;
+            //printf("%d\n",physical_page);
+            pagetable[logical_page] = physical_page;
+            physicalPageCount[physical_page] += 1;
+          }          
         }
 
       }
@@ -222,7 +222,7 @@ int main(int argc, const char *argv[]) {
     int physical_address = (physical_page << OFFSET_BITS) | offset;
     signed char value = main_memory[physical_page * PAGE_SIZE + offset];
     
-    printf("Virtual address: %d Physical address: %d Value: %d\n", logical_address, physical_address, value);
+    //printf("Virtual address: %d Physical address: %d Value: %d\n", logical_address, physical_address, value);
   }
 
 

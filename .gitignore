@@ -17,4 +17,9 @@
 hw*/**/CMakeFiles/
 hw*/**/*.mod.c
 
+!prj3/*.pdf
+!prj3/*.txt
+!prj3/*.bin
+
+
 0064568*
