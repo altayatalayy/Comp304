@@ -82,12 +82,14 @@ void add_to_tlb(int logical, int physical) {
 
 int findLastUsed(){
     int temp = 0;
+    int physicalPageIndex = 0;
     for(int i = 0; i<FRAME;i++){
       if(temp > physicalPageCount[i]){
         temp = physicalPageCount[i];
+        physicalPageIndex = i;
       }
     }
-    return temp;
+    return physicalPageIndex;
 }
 
 
@@ -115,7 +117,6 @@ int main(int argc, const char *argv[]) {
   }
   const char *argv4 = argv[4];
   int policyChoice = atoi(argv4);
-  printf("%d\n",policyChoice);
   if(policyChoice != 0 && policyChoice !=1 ){
    printf("Usage ./virtmem backingstore input -p value\n");
    printf("Value must be zero or one\n");
@@ -127,8 +128,8 @@ int main(int argc, const char *argv[]) {
   for (i = 0; i < PAGES; i++) {
     pagetable[i] = -1;
   }
-  for (i = 0; i<FRAME; i++){
-    physicalPageCount[i] = 0;
+  for (i = 0; i<=FRAME; i++){
+    physicalPageCount[i] = -1;
   }
   
   // Character buffer for reading lines of input file.
@@ -141,7 +142,7 @@ int main(int argc, const char *argv[]) {
   
   // Number of the next unallocated physical page in main memory
   unsigned char free_page = 0;
-  unsigned char free_frame = 255;
+  int free_frame = 0;
   
   while (fgets(buffer, BUFFER_SIZE, input_fp) != NULL) {
     total_addresses++;
@@ -158,11 +159,16 @@ int main(int argc, const char *argv[]) {
     // TLB hit
     if (physical_page != -1) {
       tlb_hits++;
+      //printf("%d \n",physical_page);
       physicalPageCount[physical_page] += 1;
       // TLB miss
     } else {
       physical_page = pagetable[logical_page];
-      physicalPageCount[physical_page] += 1;
+      
+      if(physical_page!= -1){
+        physicalPageCount[physical_page] += 1;
+      }
+      
       
       // Page fault
       if (physical_page == -1) {
@@ -175,27 +181,32 @@ int main(int argc, const char *argv[]) {
           if(free_page == FRAME-1){
            free_page = 0;
         }
+          
           page_faults++;
           physical_page = free_page;
           free_page++;
           pagetable[logical_page] = physical_page;
-          //memcpy(main_memory + physical_page * PAGE_SIZE, backing + logical_page * PAGE_SIZE, PAGE_SIZE);   
         }
 
         /* Least Recently Used */
         else if(policyChoice==1){
-         if(free_page == FRAME-1){
-          printf("BURASIIIIIIIASDJASODJAPDPASDASDPOOASJDPJASPDOJSAPDJPAOSJDPOAJSDPOJASPDJPSAJDPASJPD");
+         if(free_frame == FRAME-1){
             page_faults++;
-            physical_page = findLastUsed();
-            printf("%d\n",physical_page);
+            int tmp = findLastUsed();
+            physical_page = tmp;
+           // printf("%d\n",physicalPageCount[0]);
             pagetable[logical_page] = physical_page;
-        }
+            //printf("%d\n",physical_page);
+            //printf("%d\n",free_frame);
+        }else{
           page_faults++;
-          physical_page = free_page;
-          physicalPageCount[free_page] = 1;
-          free_page++;
+          physical_page = free_frame;
+          physicalPageCount[free_frame] = 1;
+
+          free_frame++;
+          //printf("%d\n",physical_page);
           pagetable[logical_page] = physical_page;
+        }          
         }
 
       }
