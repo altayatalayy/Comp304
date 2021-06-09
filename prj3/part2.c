@@ -8,6 +8,8 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include<time.h>
+
 
 #define TLB_SIZE 16
 #define PAGES 1024
@@ -31,6 +33,9 @@ struct tlbentry {
   int logical;
   int physical;
 };
+
+
+
 
 // TLB is kept track of as a circular array, with the oldest element being overwritten once the TLB is full.
 struct tlbentry tlb[TLB_SIZE];
@@ -93,8 +98,10 @@ int findLastRecentlyUsed(){
 }
 
 
-
 int main(int argc, const char *argv[]) {
+  time_t start;
+  time_t recent;
+  int t =time(&start);
   if (argc != 5) {
     fprintf(stderr, "Usage ./virtmem backingstore input\n");
     exit(1);
@@ -160,13 +167,13 @@ int main(int argc, const char *argv[]) {
     if (physical_page != -1) {
       tlb_hits++;
       //printf("%d \n",physical_page);
-      physicalPageCount[physical_page] += 1;
+      physicalPageCount[physical_page] = time(&recent)-t;
       // TLB miss
     } else {
       physical_page = pagetable[logical_page];
       
       if(physical_page!= -1){
-        physicalPageCount[physical_page] += 1;
+        physicalPageCount[physical_page] = time(&recent)-t;
       }
       
       
@@ -194,24 +201,15 @@ int main(int argc, const char *argv[]) {
             page_faults++;
             int tmp = findLastRecentlyUsed();
             physical_page = tmp;
-            //printf("%d\n",tmp);
-            printf("%d\n",physicalPageCount[255]);
-            printf("%d\n",physicalPageCount[64]);
-            printf("%d\n",physicalPageCount[65]);
-
             pagetable[logical_page] = physical_page;
-            physicalPageCount[physical_page] += 1;
-            //printf("%d\n",physical_page);
-            //printf("%d\n",free_frame);
+            physicalPageCount[physical_page] = time(&recent)-t;
           }else{
             page_faults++;
             physical_page = free_frame;
-            physicalPageCount[free_frame] = 1;
+            physicalPageCount[free_frame] = time(&recent)-t;
 
             free_frame++;
-            //printf("%d\n",physical_page);
             pagetable[logical_page] = physical_page;
-            physicalPageCount[physical_page] += 1;
           }          
         }
 
